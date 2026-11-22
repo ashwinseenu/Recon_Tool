@@ -1,0 +1,31 @@
+services:
+  tor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tor
+    restart: unless-stopped
+    networks: [internal]          # no published ports: only reconforge can reach it
+
+  reconforge:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on: [tor]
+    ports:
+      - "127.0.0.1:8787:8787"     # loopback only
+    environment:
+      RECONFORGE_TOR__SOCKS_HOST: tor
+      RECONFORGE_WEB__ALLOWED_HOSTS: '["127.0.0.1","localhost"]'
+      # RECONFORGE_WEB__TOKEN: change-me-long-random   # optional fixed dashboard token
+    volumes:
+      - rf_config:/home/recon/config
+      - rf_data:/home/recon/data
+    networks: [internal, default]
+
+volumes:
+  rf_config:
+  rf_data:
+networks:
+  internal:
+    internal: false

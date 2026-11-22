@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ReconForge{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head><body>
+<header>
+  <h1>Recon<span>Forge</span></h1>
+  <nav><a href="/">Dashboard</a><a href="/settings">Settings</a><span id="egress" class="egress">checking egress...</span></nav>
+</header>
+<main>{% block body %}{% endblock %}</main>
+<script>
+fetch('/api/egress').then(r=>r.json()).then(d=>{
+  const el=document.getElementById('egress');
+  el.textContent = d.mode ? `${d.mode} | ${d.egress_ip||'-'}${d.is_tor?' | Tor':''} | ${d.ok?'verified':'NOT VERIFIED'}` : (d.detail||'unavailable');
+  el.className='egress '+(d.ok?'ok':'bad');
+}).catch(()=>{});
+</script>
+{% block script %}{% endblock %}
+</body></html>

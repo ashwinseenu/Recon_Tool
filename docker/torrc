@@ -1,0 +1,5 @@
+# Tor for the ReconForge compose stack. Reachable only on the internal compose network.
+SocksPort 0.0.0.0:9050
+ControlPort 0.0.0.0:9051
+Log notice stdout
+CookieAuthentication 0

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block body %}
+{% if scope_empty %}<div class="panel warn">Scope is empty, so <strong>active</strong> modules will be skipped. <a href="/settings">Add authorised targets</a> to enable them.</div>{% endif %}
+
+<section class="panel">
+  <h2>New scan</h2>
+  <form method="post" action="/scan">
+    <div class="row"><input type="text" name="target" placeholder="example.com or 203.0.113.10" required autofocus>
+    <button type="submit">Run scan</button></div>
+    <label class="hint"><input type="checkbox" name="passive_only" value="1"> Passive only (never contact the target)</label>
+    <details><summary>Choose modules (default: all enabled)</summary>
+      <div class="modgrid">
+      {% for m in modules %}
+        <label class="mod"><input type="checkbox" name="module" value="{{ m.name }}"> <strong>{{ m.name }}</strong>
+          {% if m.active %}<span class="tag active">active</span>{% endif %}{% if m.needs %}<span class="tag">{{ m.needs }}</span>{% endif %}
+          <small>phase {{ m.phase }} &middot; {{ m.description }}</small></label>
+      {% endfor %}
+      </div>
+    </details>
+    <p class="hint">Network mode: <strong>{{ mode }}</strong>. Active modules only touch targets in your scope.</p>
+  </form>
+</section>
+
+<section class="panel"><h2>Running &amp; recent jobs</h2>
+  <table><thead><tr><th>Target</th><th>Status</th><th>Progress</th><th>Findings</th><th></th></tr></thead><tbody id="jobs"><tr><td colspan="5" class="hint">No jobs yet.</td></tr></tbody></table>
+</section>
+
+<section class="panel"><h2>Saved reports</h2>
+  <table><thead><tr><th>Scan</th><th>Target</th><th>Findings</th><th>Crit / High / Med</th><th></th></tr></thead><tbody>
+  {% for r in reports %}<tr><td class="mono">{{ r.scan_id }}</td><td>{{ r.target }}</td><td>{{ r.findings }}</td>
+    <td>{{ r.severity.critical }} / {{ r.severity.high }} / {{ r.severity.medium }}</td>
+    <td><a href="/report/{{ r.scan_id }}">view</a> &middot; <a href="/report/{{ r.scan_id }}.md">md</a> &middot; <a href="/report/{{ r.scan_id }}.csv">csv</a> &middot; <a href="/report/{{ r.scan_id }}.json">json</a></td></tr>
+  {% else %}<tr><td colspan="5" class="hint">No reports yet.</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}
+{% block script %}
+<script>
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function poll(){
+  try{
+    const jobs = await (await fetch('/api/jobs')).json();
+    const body = document.getElementById('jobs');
+    if(jobs.length){
+      body.innerHTML = jobs.map(j=>{
+        const mods = Object.entries(j.modules||{});
+        const done = mods.filter(([,s])=>s!=='start').length;
+        return `<tr><td>${esc(j.target)}</td><td class="st-${esc(j.status)}">${esc(j.status)}${j.error?'<br><small>'+esc(j.error)+'</small>':''}</td>
+          <td class="hint">${done}/${mods.length} modules</td><td>${j.findings??''}</td>
+          <td>${j.scan_id?`<a href="/report/${encodeURIComponent(j.scan_id)}">view</a>`:''}</td></tr>`;}).join('');
+    }
+    if(jobs.some(j=>j.status==='running'||j.status==='queued')) setTimeout(poll, 2000);
+  }catch(e){}
+}
+poll();
+</script>
+{% endblock %}

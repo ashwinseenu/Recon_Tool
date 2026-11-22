@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}ReconForge settings{% endblock %}
+{% block body %}
+{% if msg %}<div class="panel notice">{{ msg }}</div>{% endif %}
+
+<section class="panel"><h2>Network &amp; anonymity</h2>
+  <form method="post" action="/settings/network" class="cols">
+    <div><label class="blk">Mode</label>
+      <select name="mode">{% for m in ['tor','proxy','chain','direct'] %}<option value="{{ m }}" {{ 'selected' if proxy.mode==m }}>{{ m }}</option>{% endfor %}</select>
+      <p class="hint">tor = local Tor. proxy = one upstream proxy. chain = Tor, then your proxy (needs proxychains4). direct = no protection.</p></div>
+    <div><label class="blk">Upstream proxy URL (proxy / chain modes)</label>
+      <input type="text" name="proxy_url" value="{{ proxy.url }}" placeholder="socks5://user:pass@host:1080 or http://host:8080">
+      <p class="hint">Tor SOCKS {{ tor.socks_host }}:{{ tor.socks_port }} &middot; control {{ tor.control_port }}. Change these with <code>reconforge config set</code>.</p></div>
+    <div><button type="submit">Save network settings</button></div>
+  </form>
+</section>
+
+<section class="panel"><h2>Authorised scope (for active modules)</h2>
+  <form method="post" action="/settings/scope" class="cols">
+    <div><label class="blk">Domains (one per line; subdomains are included)</label><textarea name="domains">{{ scope.allowed_domains|join('\n') }}</textarea></div>
+    <div><label class="blk">CIDR ranges / IPs (one per line)</label><textarea name="cidrs">{{ scope.allowed_cidrs|join('\n') }}</textarea></div>
+    <div><label class="hint"><input type="checkbox" name="require_allowlist" value="1" {{ 'checked' if scope.require_allowlist }}> Refuse active modules when this list is empty</label><br><br>
+      <button type="submit">Save scope</button>
+      <p class="hint">Only list systems you own or have written permission to test. Resolved IPs are port-scanned only if they fall inside a listed CIDR.</p></div>
+  </form>
+</section>
+
+<section class="panel"><h2>API keys</h2>
+  <p class="hint">Stored in the secrets file (mode 600); only masked values are ever shown.</p>
+  <table><thead><tr><th>Service</th><th>Status</th><th>Current</th><th>Update</th></tr></thead><tbody>
+  {% for name, k in keys.items() %}<tr>
+    <td><strong>{{ name }}</strong><br><a href="{{ k.url }}" target="_blank" rel="noopener noreferrer">get a key</a></td>
+    <td class="{{ 'st-done' if k.configured else 'st-queued' }}">{{ 'configured' if k.configured else 'missing' }}</td>
+    <td class="mono">{{ k.masked or '-' }}{% if k.source %}<br><small>{{ k.source }}</small>{% endif %}</td>
+    <td><form method="post" action="/settings/keys" class="keyform"><input type="hidden" name="service" value="{{ name }}">
+      <input type="password" name="value" placeholder="paste key" autocomplete="off">
+      <button type="submit" name="action" value="save">Save</button>
+      {% if k.configured %}<button type="submit" name="action" value="remove" class="danger">Remove</button>{% endif %}</form></td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}

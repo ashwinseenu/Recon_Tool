@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reconforge"
+version = "2.0.0"
+description = "ReconForge - local-first attack-surface and infrastructure OSINT framework for Linux, with Tor/proxy anonymity and scope control."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = ["osint", "recon", "attack-surface", "threat-intel", "security"]
+classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+    "Topic :: Security",
+]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.7",
+    "httpx[socks]>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "PyYAML>=6.0",
+    "dnspython>=2.6",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "tldextract>=5.1",
+    "stem>=1.8.2",
+    "PySocks>=1.7.1",
+    "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[project.scripts]
+reconforge = "reconforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+reconforge = [
+    "data/*.yaml",
+    "reporting/templates/*",
+    "web/templates/*",
+    "web/static/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"

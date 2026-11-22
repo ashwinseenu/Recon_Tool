@@ -1,0 +1,101 @@
+# ReconForge defaults. Do not edit this packaged file.
+# Override in ~/.config/reconforge/local.yaml (or /etc/reconforge/local.yaml for the
+# system install), with `reconforge config set <key> <value>`, or with environment
+# variables: RECONFORGE_<SECTION>__<KEY> (e.g. RECONFORGE_PROXY__MODE=direct).
+
+# --- Anonymity ---------------------------------------------------------------
+tor:
+  socks_host: "127.0.0.1"
+  socks_port: 9050
+  control_port: 9051
+  control_password: ""          # normally set by the installer in reconforge.env
+  new_circuit_per_scan: true
+
+# mode: tor    all traffic through local Tor (default)
+#       proxy  one upstream proxy (proxy.url: socks5://, http://)
+#       chain  Tor first, then proxy.url (runs under proxychains4 automatically)
+#       direct no anonymity layer (explicit opt-out)
+proxy:
+  mode: "tor"
+  url: ""
+
+# Refuse to make requests unless the egress check passes.
+fail_closed: true
+
+# DNS: "auto" = DNS-over-HTTPS through the anonymity layer when it is on
+# (no DNS leaks), system resolver when direct.
+dns:
+  mode: "auto"
+  doh_urls:
+    - "https://cloudflare-dns.com/dns-query"
+    - "https://dns.google/resolve"
+
+http:
+  user_agent: "ReconForge/2.0"
+  timeout_seconds: 25
+  max_retries: 2
+  verify_tls: true
+
+rate_limit:
+  default_rps: 2.0
+  per_module:
+    dns: 10.0
+    lookalikes: 8.0
+    host_resolve: 8.0
+    cert_transparency: 1.0
+    virustotal: 0.25
+    shodan: 1.0
+    port_scan: 25.0
+
+# --- Scope guardrail ---------------------------------------------------------
+# ACTIVE modules (http_fingerprint, tls_inspect, port_scan, exposure_check, nmap)
+# only touch targets matched here. Resolved IPs are only port-scanned when they
+# fall inside allowed_cidrs.
+scope:
+  allowed_domains: []
+  allowed_cidrs: []
+  require_allowlist: true
+
+limits:
+  max_hosts: 150              # hostnames resolved by host_resolve
+  max_ips: 25                 # IPs enriched (ASN/InternetDB/Shodan/AbuseIPDB)
+  max_web_hosts: 25           # hosts probed by http_fingerprint / exposure_check
+  lookalike_max: 150          # permutations checked by lookalikes
+  port_timeout: 3.0
+  port_workers: 20
+  ports: [21,22,23,25,53,80,81,110,111,135,139,143,389,443,445,465,587,636,993,995,1433,1521,1723,2049,2375,2376,3000,3306,3389,5000,5432,5601,5672,5900,5985,5986,6379,6443,7001,8000,8008,8080,8081,8443,8888,9000,9090,9200,9300,10250,11211,15672,27017]
+
+tls:
+  check_legacy: true          # also test TLS 1.0 / 1.1 acceptance (best effort)
+  max_hosts: 10
+
+output:
+  formats: ["json", "html", "md"]
+
+web:
+  host: "127.0.0.1"
+  port: 8787
+  allowed_hosts: []           # extra Host headers accepted (reverse proxies)
+
+modules:
+  dns:                { enabled: true }
+  email_security:     { enabled: true }
+  rdap:               { enabled: true }
+  cert_transparency:  { enabled: true }
+  subdomains:         { enabled: true }
+  otx:                { enabled: true }
+  virustotal:         { enabled: true }
+  hibp_breaches:      { enabled: true }
+  lookalikes:         { enabled: true }
+  subfinder:          { enabled: true }
+  amass:              { enabled: true }
+  host_resolve:       { enabled: true }
+  ip_intel:           { enabled: true }
+  internetdb:         { enabled: true }
+  shodan:             { enabled: true }
+  abuseipdb:          { enabled: true }
+  http_fingerprint:   { enabled: true }
+  tls_inspect:        { enabled: true }
+  port_scan:          { enabled: true }
+  exposure_check:     { enabled: true }
+  nmap:               { enabled: true }

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReconForge report - {{ rep.target }}</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2230;--mut:#667085;--line:#e3e6ec;--info:#2f6fdb;--low:#2e8b57;--medium:#c58a00;--high:#d9480f;--critical:#b00020}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#171b23;--fg:#e8ebf2;--mut:#98a1b3;--line:#262c38}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px}
+main{max-width:1000px;margin:0 auto}h1{font-size:22px;margin:0}h2{font-size:17px;margin:28px 0 10px}
+.sub{color:var(--mut);margin:4px 0 18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.v{font-size:19px;margin-top:2px;word-break:break-word}
+.badge{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;text-transform:uppercase;margin-right:8px}
+.info{background:var(--info)}.low{background:var(--low)}.medium{background:var(--medium)}.high{background:var(--high)}.critical{background:var(--critical)}
+.finding{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.finding.critical{border-left-color:var(--critical)}.finding.high{border-left-color:var(--high)}.finding.medium{border-left-color:var(--medium)}.finding.low{border-left-color:var(--low)}.finding.info{border-left-color:var(--info)}
+.meta{color:var(--mut);font-size:12px}.detail{color:var(--mut);margin-top:3px;white-space:pre-wrap;word-break:break-word}.fix{margin-top:6px;font-size:14px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:14px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-size:12px;text-transform:uppercase}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin-bottom:8px}summary{cursor:pointer;font-weight:600}
+code{font-family:ui-monospace,Menlo,monospace;font-size:13px}footer{color:var(--mut);font-size:12px;margin-top:28px}
+</style></head><body><main>
+<h1>ReconForge &mdash; {{ rep.target }}</h1>
+<div class="sub">Scan <code>{{ rep.scan_id }}</code> &middot; {{ started }} &middot; {{ rep.duration }}s &middot; v{{ rep.version }}</div>
+<div class="grid">
+{% for s in order|reverse %}<div class="card"><div class="k">{{ s }}</div><div class="v">{{ rep.severity_counts[s] }}</div></div>{% endfor %}
+<div class="card"><div class="k">Hostnames</div><div class="v">{{ rep.assets.hostnames|length }}</div></div>
+<div class="card"><div class="k">IPs</div><div class="v">{{ rep.assets.ips|length }}</div></div>
+<div class="card"><div class="k">Egress</div><div class="v" style="font-size:14px">{{ rep.egress.mode }} &middot; {{ rep.egress.egress_ip or '-' }}{% if rep.egress.is_tor %} &middot; Tor{% endif %}</div></div>
+</div>
+<p class="meta">Scope: {{ rep.scope }}{% if rep.options.passive_only %} &middot; passive only{% endif %}</p>
+
+<h2>Findings that need attention ({{ notable|length }})</h2>
+{% for f in notable %}
+<div class="finding {{ f.severity }}"><span class="badge {{ f.severity }}">{{ f.severity }}</span><strong>{{ f.title }}</strong>
+<div class="meta">{{ f.module }}{% if f.host %} &middot; <code>{{ f.host }}</code>{% endif %}</div>
+{% if f.detail %}<div class="detail">{{ f.detail }}</div>{% endif %}
+{% if f.remediation %}<div class="fix"><strong>Fix:</strong> {{ f.remediation }}</div>{% endif %}</div>
+{% else %}<p class="meta">Nothing above informational severity.</p>{% endfor %}
+
+<h2>Assets</h2>
+<details><summary>{{ rep.assets.hostnames|length }} hostnames</summary>
+<table><tr><th>Host</th><th>Sources</th><th>DNS</th></tr>
+{% for h in rep.assets.hostnames %}<tr><td><code>{{ h.host }}</code></td><td>{{ h.sources|join(', ') }}</td><td>{{ h.resolution or '-' }}</td></tr>{% endfor %}</table></details>
+<details><summary>{{ rep.assets.ips|length }} IP addresses</summary>
+<table><tr><th>IP</th><th>ASN</th><th>Holder</th><th>Provider</th><th>Hosts</th></tr>
+{% for i in rep.assets.ips %}<tr><td><code>{{ i.ip }}</code></td><td>{{ i.asn or '-' }}</td><td>{{ i.holder or '-' }}</td><td>{{ i.provider or '-' }}</td><td>{{ i.hosts[:4]|join(', ') }}</td></tr>{% endfor %}</table></details>
+
+<h2>Module details</h2>
+{% for m in rep.modules %}
+<details><summary>{{ m.module }} &middot; phase {{ m.phase }}{% if m.active %} &middot; active{% endif %} &middot;
+{% if m.skipped %}skipped{% elif not m.ok %}error{% else %}{{ m.findings|length }} findings{% endif %} &middot; {{ m.duration }}s</summary>
+{% if m.skipped %}<p class="meta">{{ m.skip_reason }}</p>{% elif not m.ok %}<p class="meta">{{ m.error }}</p>{% endif %}
+{% for f in m.findings %}<div class="finding {{ f.severity }}"><span class="badge {{ f.severity }}">{{ f.severity }}</span>{{ f.title }}{% if f.detail %}<div class="detail">{{ f.detail }}</div>{% endif %}</div>{% endfor %}
+</details>{% endfor %}
+<footer>Generated by ReconForge. Use only against infrastructure you own or are explicitly authorised to assess.</footer>
+</main></body></html>
